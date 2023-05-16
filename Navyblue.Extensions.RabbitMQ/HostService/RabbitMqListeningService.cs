@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,16 +20,16 @@ namespace Navyblue.Extensions.RabbitMQ.HostService
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            var allConsumerTypes = _container.ComponentRegistry.Registrations
+            List<IServiceWithType> allConsumerTypes = this._container.ComponentRegistry.Registrations
                 .SelectMany(p => p.Services)
                 .OfType<IServiceWithType>()
                 .Where(p => p.ServiceType.IsInterface
                             && p.ServiceType.IsGenericType 
-                            && p.ServiceType.GetGenericTypeDefinition() == typeof(IRabbitMqConsumer<>)).ToList();
+                            && p.ServiceType.GetGenericTypeDefinition() == typeof(IRabbitMqConsumer)).ToList();
 
-            foreach (var consumerServiceType in allConsumerTypes.Select(consumer => this._container.Resolve(consumer.ServiceType)))
+            foreach (object consumerServiceType in allConsumerTypes.Select(consumer => this._container.Resolve(consumer.ServiceType)))
             {
-                EnsureStart(() => ((dynamic) consumerServiceType).StartListening(), cancellationToken).ConfigureAwait(false);
+                this.EnsureStart(() => ((dynamic) consumerServiceType).StartListening(), cancellationToken).ConfigureAwait(false);
             }
 
             return Task.CompletedTask;
@@ -59,7 +60,7 @@ namespace Navyblue.Extensions.RabbitMQ.HostService
                         }
                         catch (Exception ex)
                         {
-                            throw ex;
+                            //log
                         }
                     }
                 }

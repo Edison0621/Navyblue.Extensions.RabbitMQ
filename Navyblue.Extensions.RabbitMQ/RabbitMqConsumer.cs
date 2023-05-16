@@ -10,7 +10,7 @@ using RabbitMQ.Client.Events;
 
 namespace Navyblue.Extensions.RabbitMQ
 {
-    public class RabbitMqConsumer<T> : RabbitMqBase, IRabbitMqConsumer<T>
+    public class RabbitMqConsumer<T> : RabbitMqBase, IRabbitMqConsumer
     {
         private readonly RabbitMqSetting _setting;
         private readonly IMediator _mediator;
@@ -30,27 +30,27 @@ namespace Navyblue.Extensions.RabbitMQ
             IModel model = connection.CreateModel();
             model.BasicQos(0, queueSetting.PrefetchCount, true);
 
-            model.ExchangeDeclare(queueSetting.Exchange, queueSetting.ExchangeType, queueSetting.Durable, false);
+            model.ExchangeDeclare(queueSetting.Exchange, queueSetting.ExchangeType, queueSetting.Durable);
             model.QueueDeclare(queueSetting.Name, true, false, false);
             model.QueueBind(queueSetting.Name, queueSetting.Exchange, queueSetting.RoutingKey);
 
-            var consumer = new EventingBasicConsumer(model);
-            consumer.Received += OnMessageReceived;
+            EventingBasicConsumer consumer = new EventingBasicConsumer(model);
+            consumer.Received += this.OnMessageReceived;
 
             // T0 identify the consumer tag of this subscription
             string consumerTag = Environment.MachineName + "." + Process.GetCurrentProcess().Id + "." + queueSetting.Name;
-            model.BasicConsume(queueSetting.Name, _setting.AutoACK, consumerTag, consumer);
+            model.BasicConsume(queueSetting.Name, this._setting.AutoAck, consumerTag, consumer);
         }
 
         private void OnMessageReceived(object sender, BasicDeliverEventArgs eventArgs)
         {
-            var consumer = sender as EventingBasicConsumer;
+            EventingBasicConsumer consumer = sender as EventingBasicConsumer;
             if (consumer == null)
             {
                 throw new Exception("Exception occurred");
             }
 
-            var message = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
+            string message = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
 
             T data = message.FromJson<T>();
 
@@ -60,10 +60,10 @@ namespace Navyblue.Extensions.RabbitMQ
 
             if (!string.IsNullOrEmpty(eventArgs.BasicProperties.ReplyTo))
             {
-                ReplyTo(consumer.Model, eventArgs.BasicProperties.ReplyTo, eventArgs.BasicProperties.CorrelationId, Encoding.UTF8.GetBytes(replyToMessage));
+                this.ReplyTo(consumer.Model, eventArgs.BasicProperties.ReplyTo, eventArgs.BasicProperties.CorrelationId, Encoding.UTF8.GetBytes(replyToMessage));
             }
 
-            if (!_setting.AutoACK)
+            if (!this._setting.AutoAck)
             {
                 consumer.Model.BasicAck(eventArgs.DeliveryTag, false);
             }
@@ -71,7 +71,7 @@ namespace Navyblue.Extensions.RabbitMQ
 
         private void ReplyTo(IModel model, string replyTo, string correlationId, byte[] responseBuffer)
         {
-            var responseProperties = model.CreateBasicProperties();
+            IBasicProperties responseProperties = model.CreateBasicProperties();
 
             responseProperties.CorrelationId = correlationId;
 

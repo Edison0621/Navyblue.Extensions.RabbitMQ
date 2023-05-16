@@ -15,7 +15,7 @@ namespace Navyblue.Extensions.RabbitMQ
     public abstract class RabbitMqBase
     {
         private readonly RabbitMqSetting _setting;
-        private static readonly ConcurrentDictionary<string, Lazy<IConnection>> _concurrentDictionary = new ConcurrentDictionary<string, Lazy<IConnection>>();
+        private static readonly ConcurrentDictionary<string, Lazy<IConnection>> ConcurrentDictionary = new ConcurrentDictionary<string, Lazy<IConnection>>();
         protected readonly Dictionary<string, RabbitMqQueueSetting> _rabbitMqQueueSettings;
 
         protected RabbitMqBase(IOptions<RabbitMqSetting> setting)
@@ -26,13 +26,13 @@ namespace Navyblue.Extensions.RabbitMQ
 
         public IConnection GetConnection(string hostName)
         {
-            if (_concurrentDictionary.TryGetValue(hostName, out var lazyConnection) && lazyConnection.Value.IsOpen)
+            if (ConcurrentDictionary.TryGetValue(hostName, out Lazy<IConnection> lazyConnection) && lazyConnection.Value.IsOpen)
             {
                 return lazyConnection.Value;
             }
 
-            var connection = _concurrentDictionary.AddOrUpdate(hostName,
-                (newValue) => new Lazy<IConnection>(this.CreateConnection, LazyThreadSafetyMode.ExecutionAndPublication),
+            IConnection connection = ConcurrentDictionary.AddOrUpdate(hostName,
+                newValue => new Lazy<IConnection>(this.CreateConnection, LazyThreadSafetyMode.ExecutionAndPublication),
                 (existName, newValue) => new Lazy<IConnection>(this.CreateConnection, LazyThreadSafetyMode.ExecutionAndPublication)).Value;
 
             return connection;
@@ -40,25 +40,25 @@ namespace Navyblue.Extensions.RabbitMQ
 
         private IConnection CreateConnection()
         {
-            var factory = new ConnectionFactory
+            ConnectionFactory factory = new ConnectionFactory
             {
-                HostName = _setting.Host,
-                UserName = _setting.SslEnabled ? string.Empty : _setting.Username,
-                Password = _setting.SslEnabled ? string.Empty : _setting.Password,
-                Port = _setting.Port,
-                VirtualHost = _setting.VirtualHost
+                HostName = this._setting.Host,
+                UserName = this._setting.SslEnabled ? string.Empty : this._setting.Username,
+                Password = this._setting.SslEnabled ? string.Empty : this._setting.Password,
+                Port = this._setting.Port,
+                VirtualHost = this._setting.VirtualHost
             };
 
-            factory.Ssl = _setting.SslEnabled ? new SslOption
+            factory.Ssl = this._setting.SslEnabled ? new SslOption
             {
                 Enabled = true,
                 ServerName = factory.HostName,
                 AcceptablePolicyErrors = SslPolicyErrors.RemoteCertificateNameMismatch | SslPolicyErrors.RemoteCertificateChainErrors,
-                CertificateSelectionCallback = GetCertificateSelection,
+                CertificateSelectionCallback = this.GetCertificateSelection,
                 Version = SslProtocols.Tls12
             } : factory.Ssl;
 
-            factory.AuthMechanisms = _setting.SslEnabled ? new IAuthMechanismFactory[]
+            factory.AuthMechanisms = this._setting.SslEnabled ? new IAuthMechanismFactory[]
             {
                 new ExternalMechanismFactory()
             } : ConnectionFactory.DefaultAuthMechanisms;
@@ -72,12 +72,12 @@ namespace Navyblue.Extensions.RabbitMQ
 
         private X509Certificate GetCertificateSelection(object sender, string targetHost, X509CertificateCollection localCertificates, X509Certificate remoteCertificate, string[] acceptableIssuers)
         {
-            using (var store = new X509Store(StoreName.My, StoreLocation.LocalMachine))
+            using (X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine))
             {
                 store.Open(OpenFlags.ReadOnly);
-                var certFindType = X509FindType.FindBySubjectName;
-                var certFindValue = _setting.CertSubject;
-                var certificateCol = store.Certificates.Find(certFindType, certFindValue, true);
+                X509FindType certFindType = X509FindType.FindBySubjectName;
+                string certFindValue = this._setting.CertSubject;
+                X509Certificate2Collection certificateCol = store.Certificates.Find(certFindType, certFindValue, true);
                 store.Close();
                 return certificateCol[0];
             }

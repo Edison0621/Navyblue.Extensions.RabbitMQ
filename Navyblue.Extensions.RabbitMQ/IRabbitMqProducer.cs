@@ -2,7 +2,7 @@
 
 namespace Navyblue.Extensions.RabbitMQ
 {
-    public interface IRabbitMqProducer<T>
+    public interface IRabbitMqProducer
     {
         void Publish(string message, Dictionary<string, object> headers);
     }

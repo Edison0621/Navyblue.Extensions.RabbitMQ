@@ -18,7 +18,7 @@ namespace Navyblue.Extensions.RabbitMQ.Setting
 
         public string CertSubject { get; set; }
 
-        public bool AutoACK { get; set; }
+        public bool AutoAck { get; set; }
 
         public int WaitForConfirmsMilliseconds { get; set; }
 

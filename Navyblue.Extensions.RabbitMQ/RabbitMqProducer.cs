@@ -9,7 +9,7 @@ using RabbitMQ.Client;
 
 namespace Navyblue.Extensions.RabbitMQ
 {
-    public class RabbitMqProducer<T> : RabbitMqBase, IRabbitMqProducer<T>
+    public class RabbitMqProducer<T> : RabbitMqBase, IRabbitMqProducer
     {
         private readonly RabbitMqSetting _setting;
         private IModel _channel;
@@ -25,18 +25,18 @@ namespace Navyblue.Extensions.RabbitMQ
 
             RabbitMqQueueSetting queueSetting = this._rabbitMqQueueSettings[typeof(T).FullName ?? throw new NullGenericArgumentException("Missing generic argument full name in RabbitMqProducer")];
 
-            if (_channel == null || _channel.IsClosed)
+            if (this._channel == null || this._channel.IsClosed)
             {
-                _channel = connection.CreateModel();
+                this._channel = connection.CreateModel();
             }
 
-            _channel.BasicQos(0, queueSetting.PrefetchCount, true);
+            this._channel.BasicQos(0, queueSetting.PrefetchCount, true);
 
-            _channel.ExchangeDeclare(queueSetting.Exchange, queueSetting.ExchangeType, queueSetting.Durable, false);
-            _channel.QueueDeclare(queueSetting.Name, true, false, false);
-            _channel.QueueBind(queueSetting.Name, queueSetting.Exchange, queueSetting.RoutingKey);
+            this._channel.ExchangeDeclare(queueSetting.Exchange, queueSetting.ExchangeType, queueSetting.Durable);
+            this._channel.QueueDeclare(queueSetting.Name, true, false, false);
+            this._channel.QueueBind(queueSetting.Name, queueSetting.Exchange, queueSetting.RoutingKey);
 
-            _channel.BasicReturn += (s, args) =>
+            this._channel.BasicReturn += (s, args) =>
             {
                 //Handling Unroutable Messages
             };
@@ -46,9 +46,9 @@ namespace Navyblue.Extensions.RabbitMQ
             //    Console.Write("ACK received when publishing message");
             //};
 
-            _channel.ConfirmSelect();
+            this._channel.ConfirmSelect();
 
-            IBasicProperties messageProperties = _channel.CreateBasicProperties();
+            IBasicProperties messageProperties = this._channel.CreateBasicProperties();
             messageProperties.Headers = headers;
             messageProperties.ContentType = "text/plain";
             messageProperties.DeliveryMode = 2;
@@ -57,14 +57,14 @@ namespace Navyblue.Extensions.RabbitMQ
             byte[] body;
             if (typeof(T) == typeof(string))
             {
-                var msg = Convert.ToString(message);
+                string msg = Convert.ToString(message);
                 body = Encoding.UTF8.GetBytes(msg);
             }
             else
             {
-                var serializer = new JsonSerializer();
-                using (var ms = new MemoryStream())
-                using (var sw = new StreamWriter(ms))
+                JsonSerializer serializer = new JsonSerializer();
+                using (MemoryStream ms = new MemoryStream())
+                using (StreamWriter sw = new StreamWriter(ms))
                 {
                     serializer.Serialize(sw, message);
                     body = ms.ToArray();
@@ -72,14 +72,14 @@ namespace Navyblue.Extensions.RabbitMQ
                 }
             }
 
-            _channel.BasicPublish(
+            this._channel.BasicPublish(
                 queueSetting.Exchange,
                 string.IsNullOrEmpty(queueSetting.RoutingKey) ? queueSetting.Name : "routingKey",
                 basicProperties: messageProperties,
                 mandatory: true,
                 body: body);
 
-            _channel.WaitForConfirms(new TimeSpan(0, 0, 0, 0, this._setting.WaitForConfirmsMilliseconds));
+            this._channel.WaitForConfirms(new TimeSpan(0, 0, 0, 0, this._setting.WaitForConfirmsMilliseconds));
         }
     }
 }

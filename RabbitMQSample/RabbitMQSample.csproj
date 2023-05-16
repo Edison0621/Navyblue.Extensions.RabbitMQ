@@ -22,8 +22,11 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" />
     <PackageReference Include="Navyblue.BaseLibrary" Version="1.0.3" />
-    <PackageReference Include="Navyblue.Extensions.RabbitMQ" Version="1.0.0" />
     <PackageReference Include="RabbitMQ.Client" Version="6.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Navyblue.Extensions.RabbitMQ\Navyblue.Extensions.RabbitMQ.csproj" />
   </ItemGroup>
 
   <ItemGroup>
