@@ -1,7 +1,7 @@
 ﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Navyblue.Extensions.RabbitMQ.HostService;
 using Navyblue.Extensions.RabbitMQ.Setting;
 
@@ -9,9 +9,9 @@ namespace Navyblue.Extensions.RabbitMQ
 {
     public static class RabbitMqExtension
     {
-        public static void AddRabbitMqService(this IServiceCollection services, HostBuilderContext host)
+        public static void AddRabbitMqService(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<RabbitMqSetting>(host.Configuration.GetSection("RabbitMqSetting"));
+            services.Configure<RabbitMqSetting>(configuration.GetSection("RabbitMqSetting"));
             services.AddHostedService<RabbitMqListeningService>();
             services.AddAutofac();
         }

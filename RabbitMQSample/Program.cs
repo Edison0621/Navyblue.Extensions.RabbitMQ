@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Reflection;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using MediatR;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Navyblue.Extensions.RabbitMQ;
 using RabbitMQSample.Model;
@@ -20,8 +21,8 @@ namespace RabbitMQSample
                 })
                 .ConfigureServices((host, services) =>
                 {
-                    services.AddMediatR(typeof(Queue1Message));
-                    services.AddRabbitMqService(host);
+                    services.AddMediatR(msc=>msc.RegisterServicesFromAssembly(typeof(Queue1Message).GetTypeInfo().Assembly));
+                    services.AddRabbitMqService(host.Configuration);
                 })
                 .UseServiceProviderFactory(new AutofacServiceProviderFactory(builder => { }))
                 .ConfigureContainer<ContainerBuilder>(builder =>

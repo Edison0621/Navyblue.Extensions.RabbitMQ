@@ -9,7 +9,7 @@ namespace RabbitMQSample.Handler
 {
     public class Queue1Handler : IRequestHandler<Queue1Message>
     {
-        public Task<Unit> Handle(Queue1Message request, CancellationToken cancellationToken)
+        public Task Handle(Queue1Message request, CancellationToken cancellationToken)
         {
             Console.WriteLine($"Received {nameof(Queue1Message)}: {request.ToJson()}");
 
